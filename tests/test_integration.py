@@ -24,7 +24,7 @@ from src.downloader import (
     prune_empty_dirs,
 )
 
-runner = CliRunner(mix_stderr=False)
+runner = CliRunner()
 
 
 # --- offline fixtures -------------------------------------------------------

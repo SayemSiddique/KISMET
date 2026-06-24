@@ -18,7 +18,7 @@ from src.cli import (
 )
 from src.llm import BrainstormResult, CategoryItem, OllamaConnectionError
 
-runner = CliRunner(mix_stderr=False)
+runner = CliRunner()
 
 
 # ---------------------------------------------------------------------------
