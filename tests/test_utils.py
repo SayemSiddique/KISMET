@@ -142,19 +142,21 @@ class TestValidateMimeType:
 
 class TestBuildSearchQuery:
     def test_item_only(self) -> None:
-        assert build_search_query("Frok") == "Frok"
+        q = build_search_query("Frok")
+        assert q.startswith("Frok")
+        assert "-watermark" in q
 
     def test_scope_prepended(self) -> None:
         q = build_search_query("Frok", collection_scope="baby girl clothing")
-        assert q == "baby girl clothing Frok"
+        assert q.startswith("baby girl clothing Frok")
 
     def test_spec_appended(self) -> None:
         q = build_search_query("Frok", item_spec="pastel colors front view")
-        assert q == "Frok pastel colors front view"
+        assert "Frok pastel colors front view" in q
 
     def test_style_appended(self) -> None:
         q = build_search_query("Frok", style_suffix="product photography white background")
-        assert q == "Frok product photography white background"
+        assert "Frok product photography white background" in q
 
     def test_full_combination(self) -> None:
         q = build_search_query(
@@ -163,7 +165,7 @@ class TestBuildSearchQuery:
             item_spec="pastel colors front view",
             style_suffix="product photography white background",
         )
-        assert q == "baby girl clothing 6-12 months Frok pastel colors front view product photography white background"
+        assert "baby girl clothing 6-12 months Frok pastel colors front view product photography white background" in q
 
     def test_exclude_keywords_become_negative_terms(self) -> None:
         q = build_search_query("Frok", exclude_keywords="cartoon, watermark")
@@ -171,8 +173,10 @@ class TestBuildSearchQuery:
         assert "-watermark" in q
 
     def test_empty_exclude_keywords_ignored(self) -> None:
+        # Anti-watermark terms are always present; user-supplied negatives are not added
         q = build_search_query("Frok", exclude_keywords="")
-        assert "-" not in q
+        assert "-cartoon" not in q
+        assert "-watermark" in q  # from built-in anti-watermark filter
 
     def test_exclude_strips_whitespace(self) -> None:
         q = build_search_query("BMW M3", exclude_keywords="  cartoon ,  watermark  ")
@@ -181,7 +185,8 @@ class TestBuildSearchQuery:
 
     def test_empty_parts_skipped(self) -> None:
         q = build_search_query("BMW M3", collection_scope="", item_spec="", style_suffix="")
-        assert q == "BMW M3"
+        assert q.startswith("BMW M3")
+        assert "-watermark" in q
 
     def test_strips_leading_trailing_whitespace(self) -> None:
         q = build_search_query("  BMW M3  ", collection_scope="  cars  ")
