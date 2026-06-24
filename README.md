@@ -108,32 +108,77 @@ $ KISMET
 
 ## Quick Start — Up and Running in 5 Minutes
 
-### 1 · Install Ollama and pull a model
+### Step 1 · Install Python 3.12+
 
-```bash
-# macOS
-brew install ollama
-ollama serve &
+Download and install from [python.org](https://www.python.org/downloads/).
+
+> **Windows users:** during installation, tick **"Add Python to PATH"** before clicking Install.
+
+Verify it worked:
+```
+python --version
+```
+You should see `Python 3.12.x` or higher.
+
+---
+
+### Step 2 · Install Ollama (the local AI engine)
+
+Download and install from [ollama.com](https://ollama.com) — one installer for Windows, Mac, and Linux.
+
+Then open a terminal and run:
+```
 ollama pull llama3:latest
 ```
 
-> **Linux / Windows?** Grab the one-line installer at [ollama.com](https://ollama.com).
+Ollama starts automatically in the background after installation. You can verify it is running at `http://localhost:11434`.
 
-### 2 · Clone and install KISMET
+---
 
-```bash
-git clone https://github.com/your-username/kismet.git
-cd kismet
-python3 -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
+### Step 3 · Download KISMET
+
+**Option A — Git clone (recommended):**
+```
+git clone https://github.com/SayemSiddique/KISMET.git
+cd KISMET
+```
+
+**Option B — Download ZIP from GitHub:**
+Click the green **Code** button → **Download ZIP** → extract it → open a terminal inside the extracted folder.
+
+---
+
+### Step 4 · Create a virtual environment and install
+
+**Windows (Command Prompt or PowerShell):**
+```
+python -m venv .venv
+.venv\Scripts\activate
 pip install --upgrade pip
 pip install -e .
 ```
 
-### 3 · Launch
+**macOS / Linux:**
+```
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -e .
+```
 
-```bash
-KISMET
+You should see `kismet` appear after `pip install` completes. If you get an error saying `pyproject.toml not found`, make sure you are inside the KISMET folder (you should see `pyproject.toml` listed when you run `dir` on Windows or `ls` on Mac/Linux).
+
+---
+
+### Step 5 · Launch
+
+```
+kismet
+```
+
+Or to open the browser UI:
+```
+kismet web
 ```
 
 The tool walks you through everything interactively. Just answer the prompts.
@@ -223,11 +268,23 @@ kismet/
 
 ---
 
+## Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| `pyproject.toml not found` | You are not inside the KISMET folder. `cd` into it first, then run `pip install -e .` |
+| `python not found` on Windows | Re-install Python and tick **"Add Python to PATH"** during setup |
+| `kismet` command not found | Make sure the virtual environment is activated (`.venv\Scripts\activate` on Windows, `source .venv/bin/activate` on Mac/Linux) |
+| Ollama connection error | Run `ollama serve` in a separate terminal, or check [ollama.com](https://ollama.com) that the service is running |
+| `llama3` model not found | Run `ollama pull llama3:latest` once before launching KISMET |
+
+---
+
 ## Running the Tests
 
 The entire test suite is **110 tests and fully offline** — HTTP is mocked with `httpx.MockTransport` and images are synthesized in-memory. Nothing needs Ollama or an internet connection:
 
-```bash
+```
 pytest tests/ -v
 ```
 
