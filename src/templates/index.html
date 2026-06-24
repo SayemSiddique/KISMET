@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>media-harvest</title>
+<title>KISMET</title>
 <style>
   :root {
     --bg: #0f1117;
@@ -162,7 +162,7 @@
 <body>
 <div class="shell">
   <header>
-    <div class="logo">media-harvest <span>v0.1.0</span></div>
+    <div class="logo">KISMET <span>v0.1.0</span></div>
     <div class="badge">Universal Image Downloader</div>
   </header>
 
@@ -190,8 +190,8 @@
       <hr class="divider" />
 
       <label>Save location on your Mac</label>
-      <input type="text" id="saveDir" placeholder="~/Downloads/media_harvest_..." />
-      <div class="dir-preview" id="dirPreview">~/Downloads/media_harvest_collection</div>
+      <input type="text" id="saveDir" placeholder="~/Downloads/kismet_..." />
+      <div class="dir-preview" id="dirPreview">~/Downloads/kismet_collection</div>
 
       <label>Images per item</label>
       <input type="number" id="imageCount" value="3" min="1" max="10" style="width:100px" />
@@ -585,7 +585,7 @@ async function aiSuggest() {
       const id = ++catCounter;
       categories.push({ id, display_name: item.display_name, slug: item.folder_slug, items: [] });
     }
-    renderCategories();
+    renderCategoryList();
     status.textContent = `✓ ${categories.length} categories suggested`;
   } catch (e) {
     status.textContent = 'Network error contacting AI.';

@@ -79,6 +79,32 @@ DDG_TYPE_MAP: dict[str, str] = {
 }
 
 
+# These negative terms are appended to every query unconditionally to filter
+# watermarked stock images from appearing in results regardless of user input.
+_ANTI_WATERMARK_TERMS: str = "-watermark -shutterstock -dreamstime -depositphotos -alamy -gettyimages -istockphoto -123rf -bigstock -stockphoto -pngtree -freepik -vecteezy -stock"
+
+# Domains known to serve watermarked images — blocked before any download attempt.
+BLOCKED_DOMAINS: frozenset[str] = frozenset({
+    "shutterstock.com",
+    "dreamstime.com",
+    "depositphotos.com",
+    "alamy.com",
+    "gettyimages.com",
+    "istockphoto.com",
+    "123rf.com",
+    "bigstockphoto.com",
+    "pngtree.com",
+    "freepik.com",
+    "vecteezy.com",
+    "stock.adobe.com",
+    "magnific.ai",
+    "adobestock.com",
+    "canstockphoto.com",
+    "fotolia.com",
+    "pond5.com",
+})
+
+
 def build_search_query(
     item_display: str,
     collection_scope: str = "",
@@ -88,8 +114,9 @@ def build_search_query(
 ) -> str:
     """Compose the final DuckDuckGo query from layered user inputs.
 
-    Order: [scope] [item] [spec] [style] [-exclude -terms]
+    Order: [scope] [item] [spec] [style] [-exclude -terms] [-watermark terms]
     Empty parts are omitted so the query stays clean.
+    Anti-watermark negative terms are always appended.
     """
     parts = [p.strip() for p in [collection_scope, item_display, item_spec, style_suffix] if p.strip()]
     query = " ".join(parts)
@@ -97,6 +124,7 @@ def build_search_query(
         neg = " ".join(f"-{kw.strip()}" for kw in exclude_keywords.split(",") if kw.strip())
         if neg:
             query = f"{query} {neg}"
+    query = f"{query} {_ANTI_WATERMARK_TERMS}"
     return query.strip()
 
 

@@ -11,7 +11,7 @@ from typing import Callable, Optional, Protocol
 import httpx
 from PIL import Image
 
-from src.utils import validate_mime_type
+from src.utils import BLOCKED_DOMAINS, validate_mime_type
 
 # --- Tuning constants -------------------------------------------------------
 MAX_CONCURRENT: int = 12  # token-bucket cap (blueprint: 10–15 connections)
@@ -271,13 +271,18 @@ async def _harvest_category(
         result.error = str(exc)
         return result
 
+    def _is_blocked(url: str) -> bool:
+        from urllib.parse import urlparse
+        host = urlparse(url).hostname or ""
+        return any(host == d or host.endswith("." + d) for d in BLOCKED_DOMAINS)
+
     seen_urls: set[str] = set()
     cursor = 0
     for stem in job.filenames:
         while cursor < len(candidates):
             url = candidates[cursor]
             cursor += 1
-            if url in seen_urls:
+            if url in seen_urls or _is_blocked(url):
                 continue
             seen_urls.add(url)
             try:
