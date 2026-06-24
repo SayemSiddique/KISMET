@@ -5,7 +5,6 @@ httpx.MockTransport. Async coroutines are driven via asyncio.run to avoid a
 pytest-asyncio dependency.
 """
 
-from __future__ import annotations
 
 import asyncio
 import io

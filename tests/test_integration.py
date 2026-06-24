@@ -5,7 +5,6 @@ touching the internet. HTTP is faked via httpx.MockTransport; the discovery
 seam is swapped for a deterministic fake provider.
 """
 
-from __future__ import annotations
 
 import asyncio
 import io

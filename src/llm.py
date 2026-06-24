@@ -1,6 +1,5 @@
 """Ollama orchestration: structured brainstorming, JSON sanitization, robust parsing."""
 
-from __future__ import annotations
 
 import json
 import re

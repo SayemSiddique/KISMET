@@ -1,6 +1,5 @@
 """Async download pipeline: zero-trust fetch, Pillow sandboxing, and pluggable discovery."""
 
-from __future__ import annotations
 
 import asyncio
 import io

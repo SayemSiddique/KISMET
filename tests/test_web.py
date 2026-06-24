@@ -1,6 +1,5 @@
 """Tests for FastAPI web backend including /api/brainstorm."""
 
-from __future__ import annotations
 
 import pytest
 from fastapi.testclient import TestClient

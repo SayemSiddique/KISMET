@@ -11,7 +11,7 @@
 
 **Turn a single idea into a curated, organized image collection — powered by a local AI, zero API keys.**
 
-[![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue?style=flat-square&logo=python)](https://www.python.org/)
+[![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-blue?style=flat-square&logo=python)](https://www.python.org/)
 [![Tests](https://img.shields.io/badge/Tests-110%20passing-brightgreen?style=flat-square&logo=pytest)](tests/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 [![Local First](https://img.shields.io/badge/Local--first-No%20API%20keys-blueviolet?style=flat-square)](https://ollama.com)
@@ -235,7 +235,7 @@ pytest tests/ -v
 
 ## Requirements
 
-- **Python 3.9+**
+- **Python 3.12+**
 - **[Ollama](https://ollama.com)** running locally with `llama3` pulled
 - macOS, Linux, or Windows
 

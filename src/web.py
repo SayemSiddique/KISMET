@@ -1,6 +1,5 @@
 """FastAPI web backend for KISMET browser UI."""
 
-from __future__ import annotations
 
 import asyncio
 import json

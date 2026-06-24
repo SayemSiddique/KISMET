@@ -1,6 +1,5 @@
 """Unit tests for src.utils security controls."""
 
-from __future__ import annotations
 
 import pytest
 from pathlib import Path
