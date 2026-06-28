@@ -54,7 +54,7 @@ def _compute_dhash(img: "Image.Image") -> str:
     Robust to minor colour/brightness shifts; cheap near-dupe fingerprint.
     """
     gray = img.convert("L").resize((9, 8), Image.Resampling.LANCZOS)
-    pixels = list(gray.getdata())
+    pixels = list(gray.tobytes())
     bits = 0
     for row in range(8):
         for col in range(8):

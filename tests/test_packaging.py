@@ -50,7 +50,7 @@ def test_pyproject_entry_point():
     data = _load_pyproject()
     scripts = data["project"].get("scripts", {})
     assert "kismet" in scripts
-    assert scripts["kismet"] == "src.cli:main"
+    assert scripts["kismet"] == "src.cli:app"
 
 
 def test_pyproject_extras_defined():
