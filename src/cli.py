@@ -2,6 +2,7 @@
 
 import asyncio
 import datetime
+from datetime import timezone as _tz
 import json as _json
 import logging
 import os
@@ -71,7 +72,7 @@ def _get_version() -> str:
     try:
         from importlib.metadata import version
 
-        return version("kismet")
+        return version("kismet-harvest")
     except Exception:  # noqa: BLE001
         return "0.1.0"
 
@@ -87,7 +88,7 @@ _kismet_logger = logging.getLogger("kismet")
 class _JSONFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         payload = {
-            "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.datetime.now(_tz.utc).isoformat(),
             "level": record.levelname,
             "event": record.getMessage(),
             "details": getattr(record, "details", {}),
@@ -1012,7 +1013,7 @@ def main(
             if log_file:
                 _setup_log_file(log_file)
             # (version already handled eagerly above)
-            cfg_file = None if not config_path else __import__("pathlib").Path(config_path)
+            cfg_file = None if not config_path else Path(config_path)
             kismet_cfg = load_config(cfg_file)
             scorer_name = kismet_cfg.defaults.scorer if min_score > 0.0 else ""
             active_scorer = build_scorer(scorer_name) if min_score > 0.0 else None

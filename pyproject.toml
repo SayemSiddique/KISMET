@@ -65,7 +65,7 @@ Repository = "https://github.com/SayemSiddique/kismet"
 "Bug Tracker" = "https://github.com/SayemSiddique/kismet/issues"
 
 [project.scripts]
-kismet = "src.cli:main"
+kismet = "src.cli:app"
 
 [tool.hatch.metadata]
 allow-direct-references = true

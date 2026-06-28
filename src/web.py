@@ -337,8 +337,13 @@ async def _run_harvest(
     harvest_task = asyncio.create_task(harvest(jobs, provider=provider, on_progress=on_progress))
     drain_task = asyncio.create_task(drain_queue())
 
-    report = await harvest_task
-    queue.put_nowait({"type": "progress", "event": "__done__", "slug": "", "detail": ""})
+    try:
+        report = await harvest_task
+    except Exception:
+        drain_task.cancel()
+        raise
+    finally:
+        queue.put_nowait({"type": "progress", "event": "__done__", "slug": "", "detail": ""})
     await drain_task
 
     categories_report = [
