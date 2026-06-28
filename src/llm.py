@@ -175,7 +175,7 @@ class OllamaPlanner:
         # ollama >=0.2 returns a ChatResponse object; older versions returned a dict.
         msg = response.message if hasattr(response, "message") else response.get("message", {})
         content = msg.content if hasattr(msg, "content") else msg.get("content", "")
-        return parse_brainstorm_response(content)
+        return parse_brainstorm_response(content or "")
 
 
 class AnthropicPlanner:
