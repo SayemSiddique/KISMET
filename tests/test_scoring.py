@@ -69,9 +69,8 @@ class TestBuildScorer:
 
         # Block the import at the finder level so ImportError is raised even
         # when the package is physically installed in the test environment.
-        with patch.dict(sys.modules, {"clip": None}):
-            with caplog.at_level(logging.WARNING, logger="src.scoring"):
-                result = build_scorer("clip")
+        with patch.dict(sys.modules, {"clip": None}), caplog.at_level(logging.WARNING, logger="src.scoring"):
+            result = build_scorer("clip")
         assert isinstance(result, NullScorer)
         assert "clip" in caplog.text.lower()
 
