@@ -67,16 +67,13 @@ class TestBuildScorer:
     def test_clip_unavailable_returns_null_with_warning(self, caplog):
         import logging
 
-        # Ensure 'clip' is not importable by hiding it from sys.modules
-        original = sys.modules.pop("clip", None)
-        try:
+        # Block the import at the finder level so ImportError is raised even
+        # when the package is physically installed in the test environment.
+        with patch.dict(sys.modules, {"clip": None}):
             with caplog.at_level(logging.WARNING, logger="src.scoring"):
                 result = build_scorer("clip")
-            assert isinstance(result, NullScorer)
-            assert "clip" in caplog.text.lower()
-        finally:
-            if original is not None:
-                sys.modules["clip"] = original
+        assert isinstance(result, NullScorer)
+        assert "clip" in caplog.text.lower()
 
     def test_clip_available_returns_clip_scorer(self):
         fake_clip = types.ModuleType("clip")

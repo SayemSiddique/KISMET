@@ -2,7 +2,6 @@
 
 import asyncio
 import datetime
-from datetime import timezone as _tz
 import json as _json
 import logging
 import os
@@ -88,7 +87,7 @@ _kismet_logger = logging.getLogger("kismet")
 class _JSONFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         payload = {
-            "timestamp": datetime.datetime.now(_tz.utc).isoformat(),
+            "timestamp": datetime.datetime.now(datetime.UTC).isoformat(),
             "level": record.levelname,
             "event": record.getMessage(),
             "details": getattr(record, "details", {}),

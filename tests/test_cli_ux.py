@@ -1,6 +1,5 @@
 """Phase 16 — CLI UX polish & shell completion tests."""
 
-from __future__ import annotations
 
 import json
 import re

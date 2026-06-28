@@ -1,6 +1,5 @@
 """Tests for src/postprocess.py — all offline, in-memory Pillow images."""
 
-from __future__ import annotations
 
 import io
 import sys

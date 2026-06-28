@@ -1,7 +1,5 @@
 """Lightweight plugin/hook system for KISMET extensibility."""
 
-from __future__ import annotations
-
 import importlib
 import logging
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
@@ -21,9 +19,9 @@ class KismetPlugin(Protocol):
     entry-point group.
     """
 
-    def on_harvest_start(self, jobs: list[CategoryJob]) -> None: ...
-    def on_image_saved(self, saved_image: SavedImage) -> None: ...
-    def on_harvest_complete(self, report: HarvestReport) -> None: ...
+    def on_harvest_start(self, jobs: "list[CategoryJob]") -> None: ...
+    def on_image_saved(self, saved_image: "SavedImage") -> None: ...
+    def on_harvest_complete(self, report: "HarvestReport") -> None: ...
 
 
 class PluginRegistry:
@@ -53,13 +51,13 @@ class PluginRegistry:
             except Exception:
                 _log.exception("Plugin %r raised in %s — ignored", plugin, method)
 
-    def on_harvest_start(self, jobs: list[CategoryJob]) -> None:
+    def on_harvest_start(self, jobs: "list[CategoryJob]") -> None:
         self._call("on_harvest_start", jobs)
 
-    def on_image_saved(self, saved_image: SavedImage) -> None:
+    def on_image_saved(self, saved_image: "SavedImage") -> None:
         self._call("on_image_saved", saved_image)
 
-    def on_harvest_complete(self, report: HarvestReport) -> None:
+    def on_harvest_complete(self, report: "HarvestReport") -> None:
         self._call("on_harvest_complete", report)
 
 

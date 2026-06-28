@@ -1,6 +1,5 @@
 """Tests for the KISMET plugin/hook system (Phase 14)."""
 
-from __future__ import annotations
 
 import asyncio
 from pathlib import Path

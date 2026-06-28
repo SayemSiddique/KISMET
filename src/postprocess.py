@@ -8,8 +8,6 @@ rembg background-removal is behind the ``[bg]`` extra and silently skipped
 when not installed.
 """
 
-from __future__ import annotations
-
 import io
 import logging
 from dataclasses import dataclass

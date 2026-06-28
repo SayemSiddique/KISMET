@@ -1,6 +1,5 @@
 """Tests for packaging artifacts: pyproject.toml, Dockerfile, Homebrew formula, PyInstaller spec."""
 
-from __future__ import annotations
 
 import tomllib
 from pathlib import Path

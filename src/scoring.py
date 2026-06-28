@@ -7,8 +7,6 @@ overhead. ``ClipScorer`` is only instantiated when the ``clip`` package is
 importable; otherwise ``build_scorer`` falls back to ``NullScorer`` silently.
 """
 
-from __future__ import annotations
-
 import logging
 from typing import Protocol, runtime_checkable
 

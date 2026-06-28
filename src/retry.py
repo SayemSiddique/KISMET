@@ -1,7 +1,5 @@
 """Exponential-backoff retry helpers and token-bucket rate limiter."""
 
-from __future__ import annotations
-
 import asyncio
 import random
 import time

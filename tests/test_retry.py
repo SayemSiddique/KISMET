@@ -4,7 +4,6 @@ Async coroutines are driven via asyncio.run to avoid a pytest-asyncio dependency
 following the same pattern used by test_downloader.py.
 """
 
-from __future__ import annotations
 
 import asyncio
 import time

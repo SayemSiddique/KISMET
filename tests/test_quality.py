@@ -1,6 +1,5 @@
 """Quality-gate tests: verify CI config files are present and well-formed."""
 
-from __future__ import annotations
 
 import tomllib
 from pathlib import Path

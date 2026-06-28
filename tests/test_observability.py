@@ -4,7 +4,6 @@ Covers: --dry-run, --json output, structured log file, provider_hit_rate,
 license_breakdown, and HarvestReport.as_dict() contract.
 """
 
-from __future__ import annotations
 
 import asyncio
 import json
