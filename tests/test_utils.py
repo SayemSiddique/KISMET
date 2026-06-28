@@ -1,15 +1,15 @@
 """Unit tests for src.utils security controls."""
 
-
-import pytest
 from pathlib import Path
 
-from src.utils import sanitize_slug, resolve_safe_path, validate_mime_type, build_search_query
+import pytest
 
+from src.utils import build_search_query, resolve_safe_path, sanitize_slug, validate_mime_type
 
 # ---------------------------------------------------------------------------
 # sanitize_slug
 # ---------------------------------------------------------------------------
+
 
 class TestSanitizeSlug:
     def test_basic_phrase(self) -> None:
@@ -49,6 +49,7 @@ class TestSanitizeSlug:
 # ---------------------------------------------------------------------------
 # resolve_safe_path
 # ---------------------------------------------------------------------------
+
 
 class TestResolveSafePath:
     def test_valid_subdirectory(self, tmp_path: Path) -> None:
@@ -96,12 +97,16 @@ class TestResolveSafePath:
 # validate_mime_type
 # ---------------------------------------------------------------------------
 
+
 class TestValidateMimeType:
-    @pytest.mark.parametrize("mime", [
-        "image/jpeg",
-        "image/png",
-        "image/webp",
-    ])
+    @pytest.mark.parametrize(
+        "mime",
+        [
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+        ],
+    )
     def test_approved_types_accepted(self, mime: str) -> None:
         assert validate_mime_type(mime) is True
 
@@ -115,17 +120,20 @@ class TestValidateMimeType:
     def test_strips_quality_parameter(self) -> None:
         assert validate_mime_type("image/webp;q=0.9") is True
 
-    @pytest.mark.parametrize("mime", [
-        "text/html",
-        "application/octet-stream",
-        "application/javascript",
-        "text/plain",
-        "image/gif",
-        "image/svg+xml",
-        "image/tiff",
-        "",
-        "multipart/form-data",
-    ])
+    @pytest.mark.parametrize(
+        "mime",
+        [
+            "text/html",
+            "application/octet-stream",
+            "application/javascript",
+            "text/plain",
+            "image/gif",
+            "image/svg+xml",
+            "image/tiff",
+            "",
+            "multipart/form-data",
+        ],
+    )
     def test_rejected_types_blocked(self, mime: str) -> None:
         assert validate_mime_type(mime) is False
 
@@ -139,6 +147,7 @@ class TestValidateMimeType:
 # ---------------------------------------------------------------------------
 # build_search_query
 # ---------------------------------------------------------------------------
+
 
 class TestBuildSearchQuery:
     def test_item_only(self) -> None:
@@ -165,7 +174,11 @@ class TestBuildSearchQuery:
             item_spec="pastel colors front view",
             style_suffix="product photography white background",
         )
-        assert "baby girl clothing 6-12 months Frok pastel colors front view product photography white background" in q
+        assert (
+            "baby girl clothing 6-12 months Frok pastel colors front view"
+            " product photography white background"
+            in q
+        )
 
     def test_exclude_keywords_become_negative_terms(self) -> None:
         q = build_search_query("Frok", exclude_keywords="cartoon, watermark")

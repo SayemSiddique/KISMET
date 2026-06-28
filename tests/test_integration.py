@@ -5,9 +5,9 @@ touching the internet. HTTP is faked via httpx.MockTransport; the discovery
 seam is swapped for a deterministic fake provider.
 """
 
-
 import asyncio
 import io
+import json
 from pathlib import Path
 
 import httpx
@@ -28,6 +28,7 @@ runner = CliRunner()
 
 
 # --- offline fixtures -------------------------------------------------------
+
 
 def _png() -> bytes:
     buf = io.BytesIO()
@@ -63,10 +64,24 @@ class _FailingProvider:
         raise DiscoveryError("simulated discovery outage")
 
 
+class _CountingProvider(_FakeProvider):
+    """Fake provider that records how many times discover() was invoked."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.calls = 0
+
+    async def discover(self, client, query, count, image_type_filter=""):
+        self.calls += 1
+        return await super().discover(client, query, count, image_type_filter)
+
+
 def _harvest_offline(jobs: list[CategoryJob], provider) -> HarvestReport:
     async def run() -> HarvestReport:
         async with httpx.AsyncClient(transport=httpx.MockTransport(_image_handler)) as client:
-            return await harvest(jobs, provider=provider, client=client)
+            # dedup_threshold=0: integration tests use identical test images; disable
+            # dedup so tests exercise quota/resume logic, not dedup.
+            return await harvest(jobs, provider=provider, client=client, dedup_threshold=0)
 
     return asyncio.run(run())
 
@@ -75,9 +90,12 @@ def _harvest_offline(jobs: list[CategoryJob], provider) -> HarvestReport:
 # Downloader orchestration (real harvest, mocked network)
 # ---------------------------------------------------------------------------
 
+
 class TestHarvestIntegration:
     def test_full_quota_written_to_disk(self, tmp_path: Path) -> None:
-        job = CategoryJob("samosa", "golden samosa", tmp_path / "samosa", ["samosa_01", "samosa_02"])
+        job = CategoryJob(
+            "samosa", "golden samosa", tmp_path / "samosa", ["samosa_01", "samosa_02"]
+        )
         report = _harvest_offline([job], _FakeProvider())
 
         assert report.total_saved == 2
@@ -122,6 +140,36 @@ class TestHarvestIntegration:
         assert cat.error is not None
         assert not (tmp_path / "e").exists()  # nothing created on discovery failure
 
+    def test_rerun_is_idempotent_and_resumes(self, tmp_path: Path) -> None:
+        # First run writes the full quota; a second run re-fetches nothing.
+        job = CategoryJob("s", "q", tmp_path / "s", ["s_01", "s_02"])
+
+        first = _harvest_offline([job], _FakeProvider())
+        assert first.total_saved == 2 and first.total_skipped == 0
+
+        counting = _CountingProvider()
+        second = _harvest_offline(
+            [CategoryJob("s", "q", tmp_path / "s", ["s_01", "s_02"])], counting
+        )
+        assert second.total_saved == 0
+        assert second.total_skipped == 2
+        assert counting.calls == 0  # nothing pending → discovery never runs
+
+    def test_state_file_written_with_completed_stems(self, tmp_path: Path) -> None:
+        state_path = tmp_path / ".kismet_state.json"
+        job = CategoryJob("s/i", "q", tmp_path / "s", ["s_01"])
+
+        async def run() -> HarvestReport:
+            async with httpx.AsyncClient(transport=httpx.MockTransport(_image_handler)) as client:
+                return await harvest(
+                    [job], provider=_FakeProvider(), client=client, state_path=state_path
+                )
+
+        asyncio.run(run())
+        assert state_path.exists()
+        data = json.loads(state_path.read_text())
+        assert data["completed"] == {"s/i": ["s_01"]}
+
     def test_image_type_filter_passed_to_provider(self, tmp_path: Path) -> None:
         received: list[str] = []
 
@@ -140,6 +188,7 @@ class TestHarvestIntegration:
 # ---------------------------------------------------------------------------
 # Graceful-exit cleanup helper
 # ---------------------------------------------------------------------------
+
 
 class TestPruneEmptyDirs:
     def test_removes_empty_nested_dirs(self, tmp_path: Path) -> None:
@@ -172,30 +221,54 @@ class TestPruneEmptyDirs:
 #                   category loop, item loop per category, confirm
 # ---------------------------------------------------------------------------
 
+
 def _cli_input(dest: str, *, confirm: str = "y") -> str:
-    return "\n".join([
-        "Indian street food",  # collection name
-        "",                    # scope (skip)
-        "1",                   # visual style (no preference)
-        "",                    # exclude keywords (skip)
-        dest,                  # save dir
-        "1",                   # images per item
-        "1",                   # naming: [item]_[index]
-        "samosa",              # category 1
-        "",                    # done with categories
-        "crispy samosa",       # item 1 in samosa
-        "",                    # item 1 spec (skip)
-        "",                    # done with items
-        confirm,
-    ]) + "\n"
+    return (
+        "\n".join(
+            [
+                "Indian street food",  # collection name
+                "",  # scope (skip)
+                "1",  # visual style (no preference)
+                "",  # exclude keywords (skip)
+                dest,  # save dir
+                "1",  # images per item
+                "1",  # naming: [item]_[index]
+                "samosa",  # category 1
+                "",  # done with categories
+                "crispy samosa",  # item 1 in samosa
+                "",  # item 1 spec (skip)
+                "",  # done with items
+                confirm,
+            ]
+        )
+        + "\n"
+    )
 
 
 class TestFullCliFlow:
     def _patch_harvest(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        def fake_harvest(jobs, *, on_progress=None, provider=None, client=None):
+        def fake_harvest(
+            jobs,
+            *,
+            on_progress=None,
+            provider=None,
+            client=None,
+            resume=True,
+            state_path=None,
+            require_license=False,
+            dedup_threshold=4,
+            **_kwargs,
+        ):
             async def _inner():
                 async with httpx.AsyncClient(transport=httpx.MockTransport(_image_handler)) as c:
-                    return await harvest(jobs, provider=_FakeProvider(), client=c, on_progress=on_progress)
+                    return await harvest(
+                        jobs,
+                        provider=_FakeProvider(),
+                        client=c,
+                        on_progress=on_progress,
+                        dedup_threshold=0,
+                    )
+
             return _inner()
 
         monkeypatch.setattr(cli, "harvest", fake_harvest)
@@ -211,7 +284,9 @@ class TestFullCliFlow:
         # Real downloader wrote validated files.
         assert list((tmp_path / "harvest" / "samosa").glob("*.png"))
 
-    def test_query_preview_shown_before_download(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_query_preview_shown_before_download(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         self._patch_harvest(monkeypatch)
         dest = str(tmp_path / "harvest")
         result = runner.invoke(cli.app, input=_cli_input(dest, confirm="n"))
@@ -220,7 +295,18 @@ class TestFullCliFlow:
     def test_ctrl_c_during_download_cleans_up_and_exits_130(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        def boom(jobs, *, on_progress=None, provider=None, client=None):
+        def boom(
+            jobs,
+            *,
+            on_progress=None,
+            provider=None,
+            client=None,
+            resume=True,
+            state_path=None,
+            require_license=False,
+            dedup_threshold=4,
+            **_kwargs,
+        ):
             for job in jobs:
                 job.dest_dir.mkdir(parents=True, exist_ok=True)
 

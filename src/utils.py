@@ -1,6 +1,5 @@
 """Security utilities: slug sanitization, safe path resolution, MIME validation."""
 
-
 import re
 from pathlib import Path
 
@@ -46,9 +45,7 @@ def resolve_safe_path(base_dir: str | Path, relative_dir: str | Path) -> Path:
     target = (base / relative_dir).resolve()
 
     if not target.is_relative_to(base):
-        raise PermissionError(
-            f"Directory traversal blocked: '{target}' escapes base '{base}'."
-        )
+        raise PermissionError(f"Directory traversal blocked: '{target}' escapes base '{base}'.")
 
     if base == Path("/"):
         raise PermissionError("Writing to the filesystem root '/' is not permitted.")
@@ -63,46 +60,52 @@ def resolve_safe_path(base_dir: str | Path, relative_dir: str | Path) -> Path:
 
 
 STYLE_MAP: dict[str, str] = {
-    "product":      "product photography white background",
-    "lifestyle":    "lifestyle photography",
-    "editorial":    "editorial photo",
+    "product": "product photography white background",
+    "lifestyle": "lifestyle photography",
+    "editorial": "editorial photo",
     "illustration": "illustration vector art",
-    "none":         "",
+    "none": "",
 }
 
 DDG_TYPE_MAP: dict[str, str] = {
-    "product":      "itp:photo",
-    "lifestyle":    "itp:photo",
-    "editorial":    "itp:photo",
+    "product": "itp:photo",
+    "lifestyle": "itp:photo",
+    "editorial": "itp:photo",
     "illustration": "itp:clipart",
-    "none":         "",
+    "none": "",
 }
 
 
 # These negative terms are appended to every query unconditionally to filter
 # watermarked stock images from appearing in results regardless of user input.
-_ANTI_WATERMARK_TERMS: str = "-watermark -shutterstock -dreamstime -depositphotos -alamy -gettyimages -istockphoto -123rf -bigstock -stockphoto -pngtree -freepik -vecteezy -stock"
+_ANTI_WATERMARK_TERMS: str = (
+    "-watermark -shutterstock -dreamstime -depositphotos -alamy"
+    " -gettyimages -istockphoto -123rf -bigstock -stockphoto"
+    " -pngtree -freepik -vecteezy -stock"
+)
 
 # Domains known to serve watermarked images — blocked before any download attempt.
-BLOCKED_DOMAINS: frozenset[str] = frozenset({
-    "shutterstock.com",
-    "dreamstime.com",
-    "depositphotos.com",
-    "alamy.com",
-    "gettyimages.com",
-    "istockphoto.com",
-    "123rf.com",
-    "bigstockphoto.com",
-    "pngtree.com",
-    "freepik.com",
-    "vecteezy.com",
-    "stock.adobe.com",
-    "magnific.ai",
-    "adobestock.com",
-    "canstockphoto.com",
-    "fotolia.com",
-    "pond5.com",
-})
+BLOCKED_DOMAINS: frozenset[str] = frozenset(
+    {
+        "shutterstock.com",
+        "dreamstime.com",
+        "depositphotos.com",
+        "alamy.com",
+        "gettyimages.com",
+        "istockphoto.com",
+        "123rf.com",
+        "bigstockphoto.com",
+        "pngtree.com",
+        "freepik.com",
+        "vecteezy.com",
+        "stock.adobe.com",
+        "magnific.ai",
+        "adobestock.com",
+        "canstockphoto.com",
+        "fotolia.com",
+        "pond5.com",
+    }
+)
 
 
 def build_search_query(
@@ -118,7 +121,9 @@ def build_search_query(
     Empty parts are omitted so the query stays clean.
     Anti-watermark negative terms are always appended.
     """
-    parts = [p.strip() for p in [collection_scope, item_display, item_spec, style_suffix] if p.strip()]
+    parts = [
+        p.strip() for p in [collection_scope, item_display, item_spec, style_suffix] if p.strip()
+    ]
     query = " ".join(parts)
     if exclude_keywords:
         neg = " ".join(f"-{kw.strip()}" for kw in exclude_keywords.split(",") if kw.strip())

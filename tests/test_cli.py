@@ -1,8 +1,6 @@
 """Unit and integration tests for src.cli."""
 
-
 from pathlib import Path
-from unittest.mock import MagicMock
 
 import pytest
 from typer.testing import CliRunner
@@ -16,7 +14,7 @@ from src.cli import (
     _build_tree,
     app,
 )
-from src.llm import BrainstormResult, CategoryItem, OllamaConnectionError
+from src.llm import BrainstormResult, CategoryItem
 
 runner = CliRunner()
 
@@ -24,6 +22,7 @@ runner = CliRunner()
 # ---------------------------------------------------------------------------
 # _build_filename — new signature: (pattern, cat_slug, item_slug, index)
 # ---------------------------------------------------------------------------
+
 
 class TestBuildFilename:
     def test_item_index_pattern(self) -> None:
@@ -56,15 +55,23 @@ class TestBuildFilename:
 # _build_tree
 # ---------------------------------------------------------------------------
 
+
 class TestBuildTree:
     def _cfg(self, **overrides) -> SessionConfig:
-        cats = overrides.pop("categories", [
-            CategoryEntry("Samosa", "samosa", [
-                ItemEntry("Crispy Samosa", "crispy_samosa"),
-                ItemEntry("Veg Samosa", "veg_samosa"),
-            ]),
-            CategoryEntry("Curry", "curry", [ItemEntry("Butter Chicken", "butter_chicken")]),
-        ])
+        cats = overrides.pop(
+            "categories",
+            [
+                CategoryEntry(
+                    "Samosa",
+                    "samosa",
+                    [
+                        ItemEntry("Crispy Samosa", "crispy_samosa"),
+                        ItemEntry("Veg Samosa", "veg_samosa"),
+                    ],
+                ),
+                CategoryEntry("Curry", "curry", [ItemEntry("Butter Chicken", "butter_chicken")]),
+            ],
+        )
         defaults: dict = dict(
             project_name="Indian street food",
             project_slug="indian_street_food",
@@ -82,6 +89,7 @@ class TestBuildTree:
 
     def test_returns_tree_object(self) -> None:
         from rich.tree import Tree
+
         assert isinstance(_build_tree(self._cfg()), Tree)
 
     def test_tree_label_contains_parent(self) -> None:
@@ -145,25 +153,26 @@ class TestBuildTree:
 #   9. Confirm y/n
 # ---------------------------------------------------------------------------
 
+
 def _make_input(*lines: str) -> str:
     return "\n".join(lines) + "\n"
 
 
 def _standard_inputs(dest: str, *, confirm: str = "y") -> str:
     return _make_input(
-        "My Collection",   # Step 1: collection name
-        "",                # Step 2: scope (skip)
-        "1",               # Step 3: visual style (no preference)
-        "",                # Step 4: exclude keywords (skip)
-        dest,              # Step 5: save dir
-        "2",               # Step 6: images per item
-        "1",               # Step 7: naming ([item]_[index])
-        "Appetizers",      # Step 8: category 1
-        "",                # Step 8: blank = done with categories
-        "Samosa",          # Items for Appetizers: item 1
-        "",                # Item 1 spec (skip)
-        "",                # Items: blank = done
-        confirm,           # Confirm
+        "My Collection",  # Step 1: collection name
+        "",  # Step 2: scope (skip)
+        "1",  # Step 3: visual style (no preference)
+        "",  # Step 4: exclude keywords (skip)
+        dest,  # Step 5: save dir
+        "2",  # Step 6: images per item
+        "1",  # Step 7: naming ([item]_[index])
+        "Appetizers",  # Step 8: category 1
+        "",  # Step 8: blank = done with categories
+        "Samosa",  # Items for Appetizers: item 1
+        "",  # Item 1 spec (skip)
+        "",  # Items: blank = done
+        confirm,  # Confirm
     )
 
 
@@ -206,11 +215,19 @@ class TestCLIValidation:
     def test_naming_option_custom_prefix(self, tmp_path: Path) -> None:
         dest = str(tmp_path / "harvest")
         user_input = _make_input(
-            "My Collection", "", "1", "", dest, "1",
-            "3",          # naming: custom prefix
-            "myprefix",   # prefix value
-            "Cars", "",   # 1 category, done
-            "BMW M3", "", "",  # 1 item, no spec, done
+            "My Collection",
+            "",
+            "1",
+            "",
+            dest,
+            "1",
+            "3",  # naming: custom prefix
+            "myprefix",  # prefix value
+            "Cars",
+            "",  # 1 category, done
+            "BMW M3",
+            "",
+            "",  # 1 item, no spec, done
             "n",
         )
         result = runner.invoke(app, input=user_input)
@@ -220,12 +237,19 @@ class TestCLIValidation:
     def test_invalid_image_count_loops(self, tmp_path: Path) -> None:
         dest = str(tmp_path / "harvest")
         user_input = _make_input(
-            "My Collection", "", "1", "", dest,
-            "51",  # out of range
-            "3",   # valid on retry
+            "My Collection",
+            "",
             "1",
-            "Cars", "",
-            "BMW M3", "", "",
+            "",
+            dest,
+            "51",  # out of range
+            "3",  # valid on retry
+            "1",
+            "Cars",
+            "",
+            "BMW M3",
+            "",
+            "",
             "n",
         )
         result = runner.invoke(app, input=user_input)
@@ -246,12 +270,18 @@ class TestCLIValidation:
     def test_scope_included_in_query_preview(self, tmp_path: Path) -> None:
         dest = str(tmp_path / "harvest")
         user_input = _make_input(
-            "Baby Clothes",          # name
-            "baby girl 6-12 months", # scope
-            "1", "",                 # style, exclude
-            dest, "1", "1",
-            "Froks", "",
-            "Frok", "", "",
+            "Baby Clothes",  # name
+            "baby girl 6-12 months",  # scope
+            "1",
+            "",  # style, exclude
+            dest,
+            "1",
+            "1",
+            "Froks",
+            "",
+            "Frok",
+            "",
+            "",
             "n",
         )
         result = runner.invoke(app, input=user_input)
@@ -262,6 +292,7 @@ class TestCLIValidation:
 # ---------------------------------------------------------------------------
 # AI assist (Step 1.5)
 # ---------------------------------------------------------------------------
+
 
 def _make_brainstorm_result() -> BrainstormResult:
     return BrainstormResult(
@@ -274,21 +305,30 @@ def _make_brainstorm_result() -> BrainstormResult:
 
 
 class TestAIAssist:
-    def test_ai_categories_used_when_accepted(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_ai_categories_used_when_accepted(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setattr(cli_mod, "brainstorm_categories", lambda **_: _make_brainstorm_result())
         dest = str(tmp_path / "harvest")
         user_input = _make_input(
             "My Collection",  # Step 1: name
-            "y",              # Step 1.5: accept AI suggestion
-            "",               # Step 2: scope
-            "1", "",          # Step 3, 4
-            dest, "1", "1",   # Steps 5, 6, 7
+            "y",  # Step 1.5: accept AI suggestion
+            "",  # Step 2: scope
+            "1",
+            "",  # Step 3, 4
+            dest,
+            "1",
+            "1",  # Steps 5, 6, 7
             # Step 8 skipped because AI categories used; but items still needed per category
             # Cars items:
-            "BMW", "", "",
+            "BMW",
+            "",
+            "",
             # Bikes items:
-            "Yamaha", "", "",
-            "n",              # confirm
+            "Yamaha",
+            "",
+            "",
+            "n",  # confirm
         )
         result = runner.invoke(app, input=user_input)
         assert result.exit_code == 0
@@ -296,7 +336,7 @@ class TestAIAssist:
         assert "Cars" in result.output
 
     def test_ollama_unavailable_falls_through(self, tmp_path: Path) -> None:
-        # conftest autouse fixture already patches brainstorm_categories to raise OllamaConnectionError
+        # conftest autouse fixture patches brainstorm_categories to raise OllamaConnectionError
         dest = str(tmp_path / "harvest")
         result = runner.invoke(app, input=_standard_inputs(dest, confirm="n"))
         assert result.exit_code == 0
@@ -304,17 +344,25 @@ class TestAIAssist:
         # Manual categories step still shown
         assert "Step 8" in result.output
 
-    def test_ai_suggestion_declined_falls_through(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_ai_suggestion_declined_falls_through(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setattr(cli_mod, "brainstorm_categories", lambda **_: _make_brainstorm_result())
         dest = str(tmp_path / "harvest")
         user_input = _make_input(
             "My Collection",  # name
-            "n",              # Step 1.5: decline AI
-            "",               # scope
-            "1", "",
-            dest, "1", "1",
-            "Appetizers", "",
-            "Samosa", "", "",
+            "n",  # Step 1.5: decline AI
+            "",  # scope
+            "1",
+            "",
+            dest,
+            "1",
+            "1",
+            "Appetizers",
+            "",
+            "Samosa",
+            "",
+            "",
             "n",
         )
         result = runner.invoke(app, input=user_input)

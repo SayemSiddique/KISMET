@@ -1,6 +1,5 @@
 """Shared pytest fixtures."""
 
-
 import pytest
 
 from src.llm import OllamaConnectionError

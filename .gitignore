@@ -1,5 +1,6 @@
 # Claude Code & internal session files
 .claude/
+KISMET_BUILD_PLAN.md
 Architectural_Blueprint.md
 Claude_Session_Guide.md
 Code_Style_and_Execution.md

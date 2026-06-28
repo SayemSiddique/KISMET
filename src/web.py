@@ -1,19 +1,29 @@
 """FastAPI web backend for KISMET browser UI."""
 
-
 import asyncio
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import BackgroundTasks, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from src.downloader import CategoryJob, harvest, prune_empty_dirs
+from src.config import load_discovery_config
+from src.downloader import CategoryJob, build_provider, harvest
 from src.llm import OllamaConnectionError, brainstorm_categories
-from src.utils import DDG_TYPE_MAP, STYLE_MAP, build_search_query, build_stem, resolve_safe_path, sanitize_slug
+from src.utils import (
+    DDG_TYPE_MAP,
+    STYLE_MAP,
+    build_search_query,
+    build_stem,
+    resolve_safe_path,
+    sanitize_slug,
+)
+
+_SESSIONS_DIR = Path.home() / ".kismet" / "sessions"
 
 
 class BrainstormRequest(BaseModel):
@@ -32,11 +42,22 @@ class HarvestRequest(BaseModel):
     categories: list[dict[str, Any]] = Field(default_factory=list)
 
 
+class QueryPatchRequest(BaseModel):
+    query: str
+
+
 def build_app() -> FastAPI:
     app = FastAPI(title="KISMET", docs_url=None, redoc_url=None)
 
     _templates = Path(__file__).parent / "templates"
     app.mount("/static", StaticFiles(directory=str(_templates)), name="static")
+
+    # --- in-memory session state (scoped to this app instance) ---
+    _image_states: dict[str, str] = {}  # image_id → "accepted"|"rejected"|"pending"
+    _active_jobs: list[CategoryJob] = []  # current harvest jobs
+    _active_request: list[HarvestRequest] = [None]  # type: ignore[list-item]
+    _last_report: list[dict[str, Any] | None] = [None]
+    _rerun_tasks: list[asyncio.Task[Any]] = []  # background rerun tasks
 
     @app.get("/")
     async def index() -> FileResponse:
@@ -56,26 +77,176 @@ def build_app() -> FastAPI:
             return JSONResponse(status_code=503, content={"error": str(exc)})
         return JSONResponse(result.model_dump())
 
+    # ------------------------------------------------------------------ #
+    #  Per-image accept / reject
+    # ------------------------------------------------------------------ #
+
+    @app.post("/api/images/{image_id}/accept")
+    async def accept_image(image_id: str) -> dict[str, str]:
+        if image_id not in _image_states:
+            raise HTTPException(status_code=404, detail=f"Image '{image_id}' not found")
+        _image_states[image_id] = "accepted"
+        return {"id": image_id, "state": "accepted"}
+
+    @app.post("/api/images/{image_id}/reject")
+    async def reject_image(image_id: str) -> dict[str, str]:
+        if image_id not in _image_states:
+            raise HTTPException(status_code=404, detail=f"Image '{image_id}' not found")
+        _image_states[image_id] = "rejected"
+        return {"id": image_id, "state": "rejected"}
+
+    @app.get("/api/images/{image_id}/state")
+    async def get_image_state(image_id: str) -> dict[str, str]:
+        if image_id not in _image_states:
+            raise HTTPException(status_code=404, detail=f"Image '{image_id}' not found")
+        return {"id": image_id, "state": _image_states[image_id]}
+
+    @app.post("/api/images/{image_id}/register")
+    async def register_image(image_id: str) -> dict[str, str]:
+        """Register an image as pending (called by the UI when an image is displayed)."""
+        if image_id not in _image_states:
+            _image_states[image_id] = "pending"
+        return {"id": image_id, "state": _image_states[image_id]}
+
+    # ------------------------------------------------------------------ #
+    #  Inline query edit
+    # ------------------------------------------------------------------ #
+
+    @app.patch("/api/jobs/{job_id:path}/query")
+    async def patch_job_query(job_id: str, body: QueryPatchRequest) -> dict[str, Any]:
+        """Update the search_query of an active job (job_id == folder_slug)."""
+        for job in _active_jobs:
+            if job.folder_slug == job_id:
+                job.search_query = body.query
+                return {
+                    "folder_slug": job.folder_slug,
+                    "search_query": job.search_query,
+                    "dest_dir": str(job.dest_dir),
+                    "filenames": job.filenames,
+                }
+        raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
+
+    # ------------------------------------------------------------------ #
+    #  Per-category re-run
+    # ------------------------------------------------------------------ #
+
+    @app.post("/api/categories/{slug}/rerun")
+    async def rerun_category(slug: str, background_tasks: BackgroundTasks) -> dict[str, str]:
+        """Re-dispatch harvest for all jobs whose folder_slug starts with slug/."""
+        matching = [
+            j for j in _active_jobs if j.folder_slug == slug or j.folder_slug.startswith(f"{slug}/")
+        ]
+        if not matching:
+            raise HTTPException(status_code=404, detail=f"Category '{slug}' not found")
+
+        async def _do_rerun(jobs: list[CategoryJob]) -> None:
+            provider = build_provider(load_discovery_config())
+            await harvest(jobs, provider=provider)
+
+        background_tasks.add_task(_do_rerun, matching)
+        return {"status": "rerunning", "slug": slug}
+
+    # ------------------------------------------------------------------ #
+    #  Session persistence
+    # ------------------------------------------------------------------ #
+
+    @app.post("/api/session/save")
+    async def save_session() -> dict[str, Any]:
+        req = _active_request[0]
+        if req is None:
+            raise HTTPException(status_code=400, detail="No active harvest session")
+
+        project_slug = sanitize_slug(req.project_name) or "collection"
+        ts = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
+        session_id = f"{ts}_{project_slug}"
+
+        results: dict[str, int] = {}
+        report = _last_report[0]
+        if report:
+            for cat in report.get("categories", []):
+                results[cat["slug"]] = cat["saved"]
+
+        session_data: dict[str, Any] = {
+            "id": session_id,
+            "project_name": req.project_name,
+            "categories": req.categories,
+            "image_count": req.image_count,
+            "save_dir": req.save_dir,
+            "results": results,
+            "saved_at": datetime.now(tz=UTC).isoformat(),
+        }
+
+        _SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
+        session_file = _SESSIONS_DIR / f"{session_id}.json"
+        session_file.write_text(json.dumps(session_data, indent=2))
+
+        return session_data
+
+    @app.get("/api/sessions")
+    async def list_sessions() -> dict[str, Any]:
+        if not _SESSIONS_DIR.exists():
+            return {"sessions": []}
+        sessions = []
+        for f in sorted(_SESSIONS_DIR.glob("*.json"), reverse=True):
+            try:
+                data = json.loads(f.read_text())
+                sessions.append(
+                    {
+                        "id": data.get("id", f.stem),
+                        "project_name": data.get("project_name", ""),
+                        "saved_at": data.get("saved_at", ""),
+                        "image_count": data.get("image_count", 0),
+                    }
+                )
+            except Exception:
+                continue
+        return {"sessions": sessions}
+
+    @app.get("/api/sessions/{session_id}")
+    async def load_session(session_id: str) -> dict[str, Any]:
+        session_file = _SESSIONS_DIR / f"{session_id}.json"
+        if not session_file.exists():
+            raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
+        try:
+            return json.loads(session_file.read_text())
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    # ------------------------------------------------------------------ #
+    #  WebSocket harvest
+    # ------------------------------------------------------------------ #
+
     @app.websocket("/ws/harvest")
     async def harvest_ws(websocket: WebSocket) -> None:
         await websocket.accept()
         try:
             raw = await websocket.receive_text()
             config: dict[str, Any] = json.loads(raw)
-            await _run_harvest(websocket, config)
+            await _run_harvest(
+                websocket, config, _active_jobs, _active_request, _last_report, _image_states
+            )
         except WebSocketDisconnect:
             pass
         except Exception as exc:
-            try:
+            import contextlib
+
+            with contextlib.suppress(Exception):
                 await websocket.send_text(json.dumps({"type": "error", "message": str(exc)}))
-            except Exception:
-                pass
 
     return app
 
 
-async def _run_harvest(websocket: WebSocket, config: dict[str, Any]) -> None:
+async def _run_harvest(
+    websocket: WebSocket,
+    config: dict[str, Any],
+    active_jobs: list[CategoryJob],
+    active_request: list[Any],
+    last_report: list[Any],
+    image_states: dict[str, str],
+) -> None:
     req = HarvestRequest.model_validate(config)
+    active_request[0] = req
+
     project_slug = sanitize_slug(req.project_name) or "collection"
     raw_save_dir = req.save_dir
     image_count = req.image_count
@@ -88,9 +259,10 @@ async def _run_harvest(websocket: WebSocket, config: dict[str, Any]) -> None:
     style_suffix = STYLE_MAP.get(visual_style, "")
     ddg_filter = DDG_TYPE_MAP.get(visual_style, "")
 
-    # Resolve save directory safely
-    expanded = Path(raw_save_dir).expanduser() if raw_save_dir else (
-        Path.home() / "Downloads" / f"kismet_{project_slug}"
+    expanded = (
+        Path(raw_save_dir).expanduser()
+        if raw_save_dir
+        else (Path.home() / "Downloads" / f"kismet_{project_slug}")
     )
     try:
         save_dir = resolve_safe_path(expanded.parent, expanded.name)
@@ -98,7 +270,6 @@ async def _run_harvest(websocket: WebSocket, config: dict[str, Any]) -> None:
         await websocket.send_text(json.dumps({"type": "error", "message": str(exc)}))
         return
 
-    # Build jobs
     jobs: list[CategoryJob] = []
     for cat in categories_raw:
         cat_slug = sanitize_slug(cat.get("display_name", ""))
@@ -125,13 +296,21 @@ async def _run_harvest(websocket: WebSocket, config: dict[str, Any]) -> None:
                 build_stem(naming_pattern, cat_slug, item_slug, i)
                 for i in range(1, image_count + 1)
             ]
-            jobs.append(CategoryJob(
+            job = CategoryJob(
                 folder_slug=f"{cat_slug}/{item_slug}",
                 search_query=query,
                 dest_dir=cat_dir,
                 filenames=stems,
                 image_type_filter=ddg_filter,
-            ))
+            )
+            jobs.append(job)
+            # Register each stem as a pending image
+            for stem in stems:
+                if stem not in image_states:
+                    image_states[stem] = "pending"
+
+    active_jobs.clear()
+    active_jobs.extend(jobs)
 
     if not jobs:
         await websocket.send_text(json.dumps({"type": "error", "message": "No valid jobs to run."}))
@@ -143,7 +322,9 @@ async def _run_harvest(websocket: WebSocket, config: dict[str, Any]) -> None:
     queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
 
     def on_progress(event: str, folder_slug: str, detail: str) -> None:
-        queue.put_nowait({"type": "progress", "event": event, "slug": folder_slug, "detail": detail})
+        queue.put_nowait(
+            {"type": "progress", "event": event, "slug": folder_slug, "detail": detail}
+        )
 
     async def drain_queue() -> None:
         while True:
@@ -152,7 +333,8 @@ async def _run_harvest(websocket: WebSocket, config: dict[str, Any]) -> None:
             if msg.get("event") == "__done__":
                 break
 
-    harvest_task = asyncio.create_task(harvest(jobs, on_progress=on_progress))
+    provider = build_provider(load_discovery_config())
+    harvest_task = asyncio.create_task(harvest(jobs, provider=provider, on_progress=on_progress))
     drain_task = asyncio.create_task(drain_queue())
 
     report = await harvest_task
@@ -168,12 +350,12 @@ async def _run_harvest(websocket: WebSocket, config: dict[str, Any]) -> None:
         }
         for cat in report.categories
     ]
-    await websocket.send_text(json.dumps({
+    report_payload = {
         "type": "report",
         "total_saved": report.total_saved,
         "total_requested": report.total_requested,
         "save_dir": str(save_dir),
         "categories": categories_report,
-    }))
-
-
+    }
+    last_report[0] = report_payload
+    await websocket.send_text(json.dumps(report_payload))

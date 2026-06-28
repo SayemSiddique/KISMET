@@ -3,11 +3,36 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "kismet"
+name = "kismet-harvest"
 version = "0.1.0"
 description = "Autonomous CLI agent for AI-guided image harvesting with local LLM planning."
 readme = "README.md"
+license = { text = "MIT" }
 requires-python = ">=3.12"
+keywords = [
+    "image-harvesting",
+    "ai",
+    "llm",
+    "ollama",
+    "clip",
+    "image-download",
+    "dataset",
+    "web-scraping",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Utilities",
+]
 dependencies = [
     "httpx>=0.26.0",
     "rich>=13.7.0",
@@ -20,11 +45,42 @@ dependencies = [
     "websockets>=12.0",
 ]
 
+[project.optional-dependencies]
+vision = ["torch>=2.0.0", "clip @ git+https://github.com/openai/CLIP.git"]
+bg = ["rembg>=2.0.50"]
+web = ["fastapi>=0.110.0", "uvicorn[standard]>=0.27.0", "websockets>=12.0"]
+dev = ["ruff>=0.4.0", "mypy>=1.10.0", "pytest>=8.0.0", "httpx>=0.26.0"]
+all = [
+    "torch>=2.0.0",
+    "clip @ git+https://github.com/openai/CLIP.git",
+    "rembg>=2.0.50",
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.27.0",
+    "websockets>=12.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/SayemSiddique/kismet"
+Repository = "https://github.com/SayemSiddique/kismet"
+"Bug Tracker" = "https://github.com/SayemSiddique/kismet/issues"
+
 [project.scripts]
-kismet = "src.cli:app"
+kismet = "src.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+strict = false
