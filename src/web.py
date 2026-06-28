@@ -13,7 +13,9 @@ from pydantic import BaseModel, Field
 
 from src.config import load_discovery_config
 from src.downloader import CategoryJob, build_provider, harvest
+from src.export import ExportConfig, export_contact_sheet, export_ml_dataset, export_web, export_zip
 from src.llm import OllamaConnectionError, brainstorm_categories
+from src.postprocess import PostprocessConfig, PostprocessPipeline
 from src.utils import (
     DDG_TYPE_MAP,
     STYLE_MAP,
@@ -40,6 +42,17 @@ class HarvestRequest(BaseModel):
     visual_style: str = "none"
     exclude_keywords: str = ""
     categories: list[dict[str, Any]] = Field(default_factory=list)
+    # Advanced options
+    provider_order: list[str] = Field(default_factory=list)
+    require_license: bool = False
+    dedup_threshold: int = Field(default=4, ge=0, le=20)
+    min_score: float = Field(default=0.0, ge=0.0, le=1.0)
+    # Post-processing
+    postprocess_resize: int = Field(default=0, ge=0)
+    postprocess_remove_bg: bool = False
+    # Export
+    export_mode: str = "none"  # "none" | "zip" | "web" | "ml"
+    export_format: str = "webp"  # "webp" | "jpg"
 
 
 class QueryPatchRequest(BaseModel):
@@ -62,6 +75,21 @@ def build_app() -> FastAPI:
     @app.get("/")
     async def index() -> FileResponse:
         return FileResponse(_templates / "index.html")
+
+    @app.get("/api/config")
+    async def get_config() -> dict[str, Any]:
+        from src.config import ALL_PROVIDERS, KEYED_PROVIDERS, PROVIDER_KEY_ENV
+
+        available = []
+        for p in ALL_PROVIDERS:
+            env_var = PROVIDER_KEY_ENV.get(p, "")
+            has_key = bool(env_var and __import__("os").environ.get(env_var))
+            available.append({
+                "id": p,
+                "keyed": p in KEYED_PROVIDERS,
+                "available": has_key or p not in KEYED_PROVIDERS,
+            })
+        return {"providers": available}
 
     @app.get("/api/default-path")
     async def default_path(slug: str = "") -> dict[str, str]:
@@ -140,8 +168,28 @@ def build_app() -> FastAPI:
             raise HTTPException(status_code=404, detail=f"Category '{slug}' not found")
 
         async def _do_rerun(jobs: list[CategoryJob]) -> None:
-            provider = build_provider(load_discovery_config())
-            await harvest(jobs, provider=provider)
+            req = _active_request[0]
+            disc_cfg = load_discovery_config()
+            if req and req.provider_order:
+                disc_cfg.order = req.provider_order
+            _provider = build_provider(disc_cfg)
+            if req:
+                _pp_cfg = PostprocessConfig(
+                    resize_max_px=req.postprocess_resize,
+                    remove_bg=req.postprocess_remove_bg,
+                    auto_orient=True,
+                )
+                _pipeline: PostprocessPipeline | None = (
+                    None if PostprocessPipeline(_pp_cfg).is_noop() else PostprocessPipeline(_pp_cfg)
+                )
+                for j in jobs:
+                    j.postprocess = _pipeline
+            await harvest(
+                jobs,
+                provider=_provider,
+                require_license=req.require_license if req else False,
+                dedup_threshold=req.dedup_threshold if req else 4,
+            )
 
         background_tasks.add_task(_do_rerun, matching)
         return {"status": "rerunning", "slug": slug}
@@ -259,6 +307,14 @@ async def _run_harvest(
     style_suffix = STYLE_MAP.get(visual_style, "")
     ddg_filter = DDG_TYPE_MAP.get(visual_style, "")
 
+    # Build post-processing pipeline if any option is enabled
+    pp_cfg = PostprocessConfig(
+        resize_max_px=req.postprocess_resize,
+        remove_bg=req.postprocess_remove_bg,
+        auto_orient=True,
+    )
+    pipeline = None if PostprocessPipeline(pp_cfg).is_noop() else PostprocessPipeline(pp_cfg)
+
     expanded = (
         Path(raw_save_dir).expanduser()
         if raw_save_dir
@@ -302,6 +358,8 @@ async def _run_harvest(
                 dest_dir=cat_dir,
                 filenames=stems,
                 image_type_filter=ddg_filter,
+                min_score=req.min_score,
+                postprocess=pipeline,
             )
             jobs.append(job)
             # Register each stem as a pending image
@@ -333,8 +391,19 @@ async def _run_harvest(
             if msg.get("event") == "__done__":
                 break
 
-    provider = build_provider(load_discovery_config())
-    harvest_task = asyncio.create_task(harvest(jobs, provider=provider, on_progress=on_progress))
+    disc_cfg = load_discovery_config()
+    if req.provider_order:
+        disc_cfg.order = req.provider_order
+    provider = build_provider(disc_cfg)
+    harvest_task = asyncio.create_task(
+        harvest(
+            jobs,
+            provider=provider,
+            on_progress=on_progress,
+            require_license=req.require_license,
+            dedup_threshold=req.dedup_threshold,
+        )
+    )
     drain_task = asyncio.create_task(drain_queue())
 
     try:
@@ -345,6 +414,25 @@ async def _run_harvest(
     finally:
         queue.put_nowait({"type": "progress", "event": "__done__", "slug": "", "detail": ""})
     await drain_task
+
+    # Run export stage if requested
+    export_dir: Path | None = None
+    if req.export_mode != "none" and report.total_saved > 0:
+        export_dir = save_dir / "_export"
+        exp_cfg = ExportConfig(output_format=req.export_format)
+        try:
+            if req.export_mode in ("web", "zip", "ml"):
+                await asyncio.to_thread(export_web, report, export_dir, exp_cfg)
+                await asyncio.to_thread(export_contact_sheet, report, export_dir, exp_cfg)
+            if req.export_mode == "zip":
+                zip_path = export_dir / f"{project_slug}_export.zip"
+                await asyncio.to_thread(export_zip, export_dir, zip_path)
+            if req.export_mode == "ml":
+                await asyncio.to_thread(export_ml_dataset, report, export_dir, exp_cfg)
+        except Exception as exc:
+            await websocket.send_text(
+                json.dumps({"type": "warning", "message": f"Export error: {exc}"})
+            )
 
     categories_report = [
         {
@@ -360,7 +448,10 @@ async def _run_harvest(
         "total_saved": report.total_saved,
         "total_requested": report.total_requested,
         "save_dir": str(save_dir),
+        "export_dir": str(export_dir) if export_dir else None,
         "categories": categories_report,
+        "provider_hit_rate": report.provider_hit_rate,
+        "license_breakdown": report.license_breakdown,
     }
     last_report[0] = report_payload
     await websocket.send_text(json.dumps(report_payload))

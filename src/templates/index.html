@@ -23,15 +23,16 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
 
-  .shell { max-width: 800px; margin: 0 auto; padding: 32px 20px 80px; }
-  header { display: flex; align-items: center; gap: 12px; margin-bottom: 36px; }
+  .shell { max-width: 860px; margin: 0 auto; padding: 32px 20px 80px; }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
   .logo { font-size: 22px; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
   .logo span { color: var(--text-dim); font-weight: 400; font-size: 14px; margin-left: 6px; }
   .badge { background: var(--surface2); border: 1px solid var(--border); border-radius: 20px;
            font-size: 12px; color: var(--text-dim); padding: 3px 10px; }
+  .header-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
 
   /* Step dots */
-  .steps { display: flex; gap: 6px; margin-bottom: 28px; }
+  .steps { display: flex; gap: 6px; margin-bottom: 28px; margin-top: 20px; }
   .step-dot { height: 4px; border-radius: 2px; flex: 1; background: var(--border); transition: background .3s; }
   .step-dot.done { background: var(--accent-dim); }
   .step-dot.active { background: var(--accent); }
@@ -40,7 +41,7 @@
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
           padding: 28px; margin-bottom: 16px; }
   .card-title { font-size: 13px; font-weight: 600; color: var(--text-dim); text-transform: uppercase;
-                letter-spacing: .06em; margin-bottom: 18px; }
+                letter-spacing: .06em; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; }
 
   /* Form */
   label { display: block; font-size: 14px; color: var(--text-dim); margin-bottom: 7px; margin-top: 18px; }
@@ -56,8 +57,26 @@
   select option { background: var(--surface2); }
   textarea { resize: vertical; min-height: 38px; }
 
+  /* Toggle switch */
+  .toggle-row { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+  .toggle-row label { margin: 0; color: var(--text); font-size: 14px; }
+  .toggle-row .sub { font-size: 12px; color: var(--text-dim); }
+  .toggle { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: var(--border); border-radius: 22px; cursor: pointer; transition: background .2s; }
+  .slider::before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px;
+                    background: var(--text-dim); border-radius: 50%; transition: transform .2s, background .2s; }
+  .toggle input:checked + .slider { background: var(--accent-dim); }
+  .toggle input:checked + .slider::before { transform: translateX(18px); background: var(--accent); }
+
+  /* Slider */
+  .range-row { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+  input[type=range] { flex: 1; accent-color: var(--accent); height: 4px; }
+  .range-val { font-size: 13px; color: var(--accent); font-weight: 600; min-width: 36px; text-align: right; }
+
   /* Radio option cards */
   .options { display: grid; gap: 8px; margin-top: 6px; }
+  .options.cols2 { grid-template-columns: 1fr 1fr; }
   .opt { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px;
          background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
          cursor: pointer; transition: border-color .2s; }
@@ -98,10 +117,35 @@
                  transition: all .2s; margin-top: 4px; }
   .add-cat-btn:hover { border-color: var(--accent); color: var(--accent); }
 
+  /* Provider pills */
+  .provider-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .provider-pill { display: flex; align-items: center; gap: 7px; padding: 6px 12px;
+                   background: var(--bg); border: 1px solid var(--border); border-radius: 20px;
+                   cursor: pointer; transition: all .15s; user-select: none; font-size: 13px; }
+  .provider-pill.active { border-color: var(--accent); background: #1a1f3a; color: var(--accent); }
+  .provider-pill.locked { opacity: .4; cursor: not-allowed; }
+  .provider-pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
+  .provider-pill.active .dot { background: var(--accent); }
+  .pill-key { font-size: 10px; background: var(--surface2); border-radius: 3px; padding: 1px 5px; color: var(--text-dim); margin-left: 2px; }
+
+  /* Collapsible advanced section */
+  .advanced-toggle { font-size: 13px; color: var(--accent); background: none; border: none;
+                     cursor: pointer; padding: 0; display: flex; align-items: center; gap: 6px; }
+  .advanced-toggle:hover { text-decoration: underline; }
+  .advanced-arrow { transition: transform .2s; display: inline-block; }
+  .advanced-arrow.open { transform: rotate(90deg); }
+  .advanced-body { display: none; margin-top: 18px; border-top: 1px solid var(--border); padding-top: 18px; }
+  .advanced-body.open { display: block; }
+
   /* Scope hint box */
   .scope-hint { background: #1a2240; border: 1px solid var(--accent-dim); border-radius: 7px;
                 padding: 10px 14px; margin-top: 10px; font-size: 12px; color: var(--text-dim); line-height: 1.6; }
   .scope-hint strong { color: var(--accent); }
+
+  /* Info box */
+  .info-box { background: #1a2118; border: 1px solid #2d4a2a; border-radius: 7px;
+              padding: 10px 14px; margin-top: 10px; font-size: 12px; color: var(--text-dim); line-height: 1.6; }
+  .info-box strong { color: var(--green); }
 
   /* Buttons */
   .btn-row { display: flex; gap: 10px; margin-top: 24px; justify-content: flex-end; }
@@ -112,6 +156,7 @@
   .btn-primary:not(:disabled):hover { opacity: .85; }
   .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
   .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-sm { padding: 7px 14px; font-size: 13px; }
 
   /* Progress */
   .prog-bar-bg { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin: 14px 0 8px; }
@@ -124,6 +169,8 @@
   .log-entry { margin-bottom: 4px; }
   .log-entry.ok { color: var(--green); }
   .log-entry.err { color: var(--red); }
+  .log-entry.warn { color: var(--yellow); }
+  .log-entry.skip { color: var(--text-dim); opacity: .7; }
 
   /* Report */
   .report-table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -135,10 +182,18 @@
   .tag.ok { background: #14532d; color: var(--green); }
   .tag.partial { background: #451a03; color: var(--yellow); }
   .tag.fail { background: #450a0a; color: var(--red); }
-  .stat-row { display: flex; gap: 24px; margin-bottom: 20px; }
+  .stat-row { display: flex; gap: 24px; margin-bottom: 20px; flex-wrap: wrap; }
   .stat { text-align: center; }
   .stat-num { font-size: 28px; font-weight: 700; color: var(--accent); }
   .stat-label { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+
+  /* Provider breakdown chips */
+  .breakdown-section { margin-top: 20px; }
+  .breakdown-title { font-size: 12px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+  .breakdown-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px;
+          font-size: 12px; background: var(--surface2); border: 1px solid var(--border); }
+  .chip-count { font-weight: 700; color: var(--accent); }
 
   /* Query preview (review screen) */
   .query-preview-block { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px; }
@@ -150,6 +205,15 @@
                background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
                padding: 3px 8px; flex: 1; }
 
+  /* Session panel */
+  .session-panel { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-top: 14px; }
+  .session-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .session-item:last-child { border-bottom: none; }
+  .session-name { font-weight: 500; flex: 1; }
+  .session-meta { font-size: 11px; color: var(--text-dim); }
+  .session-load { font-size: 12px; color: var(--accent); background: none; border: none; cursor: pointer; }
+  .session-load:hover { text-decoration: underline; }
+
   /* Utility */
   .hidden { display: none !important; }
   .note { font-size: 13px; color: var(--text-dim); margin-top: 6px; }
@@ -157,16 +221,32 @@
                  background: var(--bg); border: 1px solid var(--border);
                  border-radius: 6px; padding: 8px 12px; margin-top: 8px; word-break: break-all; }
   .divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+  @media (max-width: 560px) { .two-col { grid-template-columns: 1fr; } .options.cols2 { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
 <div class="shell">
   <header>
     <div class="logo">KISMET <span>v0.1.0</span></div>
-    <div class="badge">Universal Image Downloader</div>
+    <div class="badge">Universal Image Harvester</div>
+    <div class="header-actions">
+      <button class="btn btn-ghost btn-sm" onclick="showSessions()">📂 Sessions</button>
+    </div>
   </header>
 
   <div class="steps" id="stepDots"></div>
+
+  <!-- Sessions overlay -->
+  <div id="sessionsOverlay" class="hidden">
+    <div class="card">
+      <div class="card-title">
+        Saved Sessions
+        <button class="btn-icon" onclick="hideSessions()" style="font-size:12px;padding:3px 8px">✕ Close</button>
+      </div>
+      <div id="sessionsList"><div style="color:var(--text-dim);font-size:13px">Loading…</div></div>
+    </div>
+  </div>
 
   <!-- SCREEN 1: Setup -->
   <div id="screen1">
@@ -194,8 +274,8 @@
       <div class="dir-preview" id="dirPreview">~/Downloads/kismet_collection</div>
 
       <label>Images per item</label>
-      <input type="number" id="imageCount" value="3" min="1" max="10" style="width:100px" />
-      <div class="note">1 – 10 images downloaded per item</div>
+      <input type="number" id="imageCount" value="3" min="1" max="50" style="width:100px" />
+      <div class="note">1 – 50 images downloaded per item</div>
     </div>
 
     <div class="card">
@@ -262,6 +342,118 @@
       </div>
     </div>
 
+    <!-- ── Advanced Options ─────────────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-title">
+        Advanced Options
+        <button class="advanced-toggle" onclick="toggleAdvanced()">
+          <span class="advanced-arrow" id="advArrow">▶</span> Configure
+        </button>
+      </div>
+      <div class="advanced-body" id="advancedBody">
+
+        <!-- Providers -->
+        <div style="margin-bottom:20px">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">Image Providers</div>
+          <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px">Select which providers to use. Keyless providers work out of the box. Keyed providers require an API key set as an environment variable.</div>
+          <div class="provider-grid" id="providerGrid">
+            <!-- filled by JS -->
+          </div>
+        </div>
+
+        <hr class="divider" style="margin:14px 0" />
+
+        <!-- Dedup -->
+        <div style="margin-bottom:16px">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">Near-duplicate Filter</div>
+          <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px">Hamming distance threshold for dHash deduplication. 0 = off, higher = stricter.</div>
+          <div class="range-row">
+            <span style="font-size:12px;color:var(--text-dim)">Off</span>
+            <input type="range" id="dedupSlider" min="0" max="12" value="4" oninput="updateRange('dedupSlider','dedupVal',v=>v==0?'Off':v)" />
+            <span style="font-size:12px;color:var(--text-dim)">Strict</span>
+            <span class="range-val" id="dedupVal">4</span>
+          </div>
+        </div>
+
+        <!-- License filter -->
+        <div class="toggle-row" style="margin-bottom:16px">
+          <label class="toggle">
+            <input type="checkbox" id="requireLicense" />
+            <span class="slider"></span>
+          </label>
+          <div>
+            <label style="margin:0;color:var(--text)">Require license metadata</label>
+            <div class="sub">Skip images from providers that don't supply license info (e.g. DuckDuckGo)</div>
+          </div>
+        </div>
+
+        <hr class="divider" style="margin:14px 0" />
+
+        <!-- Post-processing -->
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px">Post-processing</div>
+        <div class="two-col">
+          <div>
+            <label style="margin-top:0">Resize (max dimension, px)</label>
+            <input type="number" id="resizeMax" placeholder="0 = off" min="0" max="8000" style="width:140px" value="0" />
+            <div class="note">Fits the longest side to this value, preserving aspect ratio.</div>
+          </div>
+          <div>
+            <div class="toggle-row" style="margin-top:22px">
+              <label class="toggle">
+                <input type="checkbox" id="removeBg" />
+                <span class="slider"></span>
+              </label>
+              <div>
+                <label style="margin:0;color:var(--text)">Remove background</label>
+                <div class="sub">Requires <code>pip install kismet[bg]</code></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <hr class="divider" style="margin:14px 0" />
+
+        <!-- Export -->
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px">Export</div>
+        <div class="options cols2" id="exportOpts">
+          <label class="opt selected" onclick="selectExport(this,'none')">
+            <div class="opt-circle"></div>
+            <div><div class="opt-label">No export</div>
+                 <div class="opt-eg">Save originals only</div></div>
+          </label>
+          <label class="opt" onclick="selectExport(this,'web')">
+            <div class="opt-circle"></div>
+            <div><div class="opt-label">Web assets</div>
+                 <div class="opt-eg">Re-encoded + contact sheet</div></div>
+          </label>
+          <label class="opt" onclick="selectExport(this,'zip')">
+            <div class="opt-circle"></div>
+            <div><div class="opt-label">ZIP archive</div>
+                 <div class="opt-eg">Web assets packed into a .zip</div></div>
+          </label>
+          <label class="opt" onclick="selectExport(this,'ml')">
+            <div class="opt-circle"></div>
+            <div><div class="opt-label">ML dataset</div>
+                 <div class="opt-eg">train/val/test split + manifest</div></div>
+          </label>
+        </div>
+        <div id="exportFormatRow" style="margin-top:12px">
+          <label style="margin-top:0;font-size:13px">Export format</label>
+          <div style="display:flex;gap:10px;margin-top:6px">
+            <label class="opt selected" onclick="selectExportFmt(this,'webp')" style="flex:1;padding:8px 12px">
+              <div class="opt-circle"></div>
+              <div><div class="opt-label">WebP</div><div class="opt-eg">Smaller files</div></div>
+            </label>
+            <label class="opt" onclick="selectExportFmt(this,'jpg')" style="flex:1;padding:8px 12px">
+              <div class="opt-circle"></div>
+              <div><div class="opt-label">JPEG</div><div class="opt-eg">Max compatibility</div></div>
+            </label>
+          </div>
+        </div>
+
+      </div><!-- /.advanced-body -->
+    </div>
+
     <div class="btn-row">
       <button class="btn btn-primary" onclick="goStep2()">Next — Define Categories →</button>
     </div>
@@ -270,7 +462,7 @@
   <!-- SCREEN 2: Categories + items -->
   <div id="screen2" class="hidden">
     <div class="card">
-      <div class="card-title">Step 5 — Categories & Items</div>
+      <div class="card-title">Step 5 — Categories &amp; Items</div>
       <div class="note" style="margin-bottom:16px">
         Add categories (folders), then add items inside each. Optionally add a <strong>specification</strong> per item for more precise searches.<br>
         <span style="color:var(--accent);font-size:12px">e.g. item: "Frok" → spec: "for toddlers pastel colors front view"</span>
@@ -285,7 +477,7 @@
 
     <div class="btn-row">
       <button class="btn btn-ghost" onclick="goScreen(1)">← Back</button>
-      <button class="btn btn-primary" onclick="goReview()">Review & Download →</button>
+      <button class="btn btn-primary" onclick="goReview()">Review &amp; Download →</button>
     </div>
   </div>
 
@@ -304,7 +496,7 @@
   <!-- SCREEN 4: Progress -->
   <div id="screen4" class="hidden">
     <div class="card">
-      <div class="card-title">Downloading & Validating</div>
+      <div class="card-title">Downloading &amp; Validating</div>
       <div class="prog-bar-bg"><div class="prog-bar-fill" id="progFill"></div></div>
       <div class="prog-count" id="progCount">Starting…</div>
       <div class="prog-log" id="progLog"></div>
@@ -314,16 +506,21 @@
   <!-- SCREEN 5: Report -->
   <div id="screen5" class="hidden">
     <div class="card">
-      <div class="card-title">Harvest Complete</div>
+      <div class="card-title">
+        Harvest Complete
+        <button class="btn btn-ghost btn-sm" onclick="saveSession()">💾 Save Session</button>
+      </div>
       <div class="stat-row" id="statRow"></div>
-      <div class="note" id="saveDirNote" style="margin-bottom:16px"></div>
+      <div class="note" id="saveDirNote" style="margin-bottom:8px"></div>
+      <div class="note hidden" id="exportDirNote" style="margin-bottom:16px"></div>
       <table class="report-table">
         <thead><tr><th>Category / Item</th><th>Saved</th><th>Status</th></tr></thead>
         <tbody id="reportBody"></tbody>
       </table>
+      <div id="providerBreakdown"></div>
     </div>
     <div class="btn-row">
-      <button class="btn btn-primary" onclick="location.reload()">Start New Collection</button>
+      <button class="btn btn-ghost" onclick="location.reload()">Start New Collection</button>
     </div>
   </div>
 </div>
@@ -333,8 +530,12 @@
 let currentScreen = 1;
 let namingPattern = '[item]_[index]';
 let visualStyle = 'none';
+let exportMode = 'none';
+let exportFmt = 'webp';
 let categories = [];
 let catCounter = 0;
+let availableProviders = [];
+let selectedProviders = [];
 const TOTAL_STEPS = 5;
 
 const STYLE_MAP = {
@@ -344,6 +545,33 @@ const STYLE_MAP = {
   'illustration': 'illustration vector art',
   'none':         '',
 };
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  renderDots(1);
+  const nameEl = document.getElementById('projectName');
+  const dirEl  = document.getElementById('saveDir');
+  const prev   = document.getElementById('dirPreview');
+
+  nameEl.addEventListener('input', () => {
+    const s = slug(nameEl.value) || 'collection';
+    fetch('/api/default-path?slug=' + encodeURIComponent(s))
+      .then(r => r.json()).then(d => {
+        if (!dirEl._userEdited) dirEl.value = d.path;
+        prev.textContent = dirEl.value || d.path;
+      });
+  });
+  dirEl.addEventListener('input', () => { dirEl._userEdited = true; prev.textContent = dirEl.value; });
+
+  // Load provider config
+  try {
+    const r = await fetch('/api/config');
+    const data = await r.json();
+    availableProviders = data.providers || [];
+    selectedProviders = availableProviders.filter(p => p.available).map(p => p.id);
+    renderProviders();
+  } catch(e) { /* fail silently */ }
+});
 
 // ─── Dots ────────────────────────────────────────────────────────────────────
 function renderDots(active) {
@@ -360,6 +588,7 @@ function renderDots(active) {
 function goScreen(n) {
   for (let i = 1; i <= 5; i++)
     document.getElementById('screen'+i).classList.toggle('hidden', i !== n);
+  document.getElementById('sessionsOverlay').classList.add('hidden');
   currentScreen = n;
   renderDots(n);
   window.scrollTo(0, 0);
@@ -391,23 +620,71 @@ function selectStyle(el, val) {
   visualStyle = val;
 }
 
-// ─── Dir preview ─────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  renderDots(1);
-  const nameEl = document.getElementById('projectName');
-  const dirEl  = document.getElementById('saveDir');
-  const prev   = document.getElementById('dirPreview');
+// ─── Export ──────────────────────────────────────────────────────────────────
+function selectExport(el, val) {
+  document.querySelectorAll('#exportOpts .opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  exportMode = val;
+  document.getElementById('exportFormatRow').style.display = val === 'none' ? 'none' : '';
+}
 
-  nameEl.addEventListener('input', () => {
-    const s = slug(nameEl.value) || 'collection';
-    fetch('/api/default-path?slug=' + encodeURIComponent(s))
-      .then(r => r.json()).then(d => {
-        if (!dirEl._userEdited) dirEl.value = d.path;
-        prev.textContent = dirEl.value || d.path;
-      });
+function selectExportFmt(el, val) {
+  el.closest('.two-col, div').querySelectorAll('.opt').forEach(o => o.classList.remove('selected'));
+  document.querySelectorAll('#exportFormatRow .opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  exportFmt = val;
+}
+
+// ─── Advanced toggle ─────────────────────────────────────────────────────────
+function toggleAdvanced() {
+  const body = document.getElementById('advancedBody');
+  const arrow = document.getElementById('advArrow');
+  const open = body.classList.toggle('open');
+  arrow.classList.toggle('open', open);
+}
+
+// ─── Range inputs ────────────────────────────────────────────────────────────
+function updateRange(sliderId, valId, fmt) {
+  const v = parseInt(document.getElementById(sliderId).value);
+  document.getElementById(valId).textContent = fmt ? fmt(v) : v;
+}
+
+// ─── Providers ───────────────────────────────────────────────────────────────
+function renderProviders() {
+  const grid = document.getElementById('providerGrid');
+  if (!availableProviders.length) {
+    grid.innerHTML = '<div style="font-size:12px;color:var(--text-dim)">Could not load provider info.</div>';
+    return;
+  }
+  grid.innerHTML = '';
+  availableProviders.forEach(p => {
+    const active = selectedProviders.includes(p.id);
+    const pill = document.createElement('div');
+    pill.className = 'provider-pill' + (active ? ' active' : '') + (!p.available ? ' locked' : '');
+    pill.innerHTML = `<span class="dot"></span>${p.id}${p.keyed ? `<span class="pill-key">KEY</span>` : ''}`;
+    if (p.available) {
+      pill.onclick = () => toggleProvider(p.id, pill);
+    } else {
+      pill.title = `Requires ${p.id.toUpperCase()}_API_KEY environment variable`;
+    }
+    grid.appendChild(pill);
   });
-  dirEl.addEventListener('input', () => { dirEl._userEdited = true; prev.textContent = dirEl.value; });
-});
+}
+
+function toggleProvider(id, pill) {
+  const idx = selectedProviders.indexOf(id);
+  if (idx === -1) {
+    selectedProviders.push(id);
+    pill.classList.add('active');
+  } else {
+    selectedProviders.splice(idx, 1);
+    pill.classList.remove('active');
+  }
+  pill.querySelector('.dot').style.background = selectedProviders.includes(id) ? 'var(--accent)' : 'var(--border)';
+}
+
+// ─── Dir preview ─────────────────────────────────────────────────────────────
+// (done in DOMContentLoaded above)
 
 // ─── Build effective search query (mirrors server logic) ──────────────────────
 function buildQuery(itemDisplay, itemSpec) {
@@ -429,7 +706,7 @@ function goStep2() {
   const name = document.getElementById('projectName').value.trim();
   if (!name) { alert('Please enter a collection name.'); return; }
   const cnt = parseInt(document.getElementById('imageCount').value);
-  if (!cnt || cnt < 1 || cnt > 10) { alert('Images per item must be 1–10.'); return; }
+  if (!cnt || cnt < 1 || cnt > 50) { alert('Images per item must be 1–50.'); return; }
   if (namingPattern === '__custom__' && !document.getElementById('customPrefix').value.trim()) {
     alert('Please enter a custom prefix.'); return;
   }
@@ -529,7 +806,6 @@ function renderCategoryList() {
       </div>`;
     list.appendChild(div);
 
-    // fix spec toggle button label for items with existing spec
     cat.items.forEach(item => {
       if (item.specification) {
         const btn = document.getElementById('spec_btn_' + item.id);
@@ -573,7 +849,7 @@ async function aiSuggest() {
       body: JSON.stringify({ goal, count: 5 }),
     });
     if (res.status === 503) {
-      status.textContent = 'Ollama not available — add categories manually.';
+      status.textContent = 'AI not available — add categories manually.';
       return;
     }
     if (!res.ok) { status.textContent = 'AI request failed.'; return; }
@@ -613,6 +889,15 @@ function goReview() {
   const scope      = document.getElementById('collectionScope').value.trim();
   const excl       = document.getElementById('excludeKeywords').value.trim();
   const styleName  = document.querySelector('#styleOpts .opt.selected .opt-label')?.textContent || 'No preference';
+  const dedupVal   = parseInt(document.getElementById('dedupSlider').value);
+  const resizeVal  = parseInt(document.getElementById('resizeMax').value) || 0;
+  const removeBg   = document.getElementById('removeBg').checked;
+  const reqLicense = document.getElementById('requireLicense').checked;
+
+  // Compute active providers label
+  const provLabel = selectedProviders.length
+    ? selectedProviders.join(', ')
+    : '<span style="color:var(--red)">none selected!</span>';
 
   let html = `
     <div style="margin-bottom:18px">
@@ -625,6 +910,12 @@ function goReview() {
       ${scope ? `<div style="font-size:12px;color:var(--text-dim)">Scope: <span style="color:var(--text)">${escH(scope)}</span></div>` : ''}
       <div style="font-size:12px;color:var(--text-dim)">Style: <span style="color:var(--text)">${escH(styleName)}</span></div>
       ${excl ? `<div style="font-size:12px;color:var(--text-dim)">Exclude: <span style="color:var(--red)">${escH(excl)}</span></div>` : ''}
+      <div style="font-size:12px;color:var(--text-dim)">Providers: <span style="color:var(--text)">${provLabel}</span></div>
+      ${reqLicense ? `<div style="font-size:12px;color:var(--yellow)">⚠ License required — DuckDuckGo results will be skipped</div>` : ''}
+      ${dedupVal > 0 ? `<div style="font-size:12px;color:var(--text-dim)">Dedup threshold: <span style="color:var(--text)">${dedupVal}</span></div>` : ''}
+      ${resizeVal > 0 ? `<div style="font-size:12px;color:var(--text-dim)">Resize max: <span style="color:var(--text)">${resizeVal}px</span></div>` : ''}
+      ${removeBg ? `<div style="font-size:12px;color:var(--text-dim)">Background removal: <span style="color:var(--green)">enabled</span></div>` : ''}
+      ${exportMode !== 'none' ? `<div style="font-size:12px;color:var(--text-dim)">Export: <span style="color:var(--accent)">${exportMode} (${exportFmt})</span></div>` : ''}
       <div style="font-size:12px;color:var(--text-dim);margin-top:6px">Save path:</div>
       <div class="dir-preview">${escH(saveDir)}</div>
       <div style="font-size:12px;color:var(--text-dim);margin-top:8px">Naming: <code style="color:var(--accent)">${escH(pattern.replace('[index]','01'))}.jpg</code></div>
@@ -653,6 +944,12 @@ function goReview() {
 // ─── Download ────────────────────────────────────────────────────────────────
 function startDownload() {
   syncFromDOM();
+  if (selectedProviders.length === 0) {
+    alert('No image providers selected. Please enable at least one provider in Advanced Options.');
+    goScreen(1);
+    toggleAdvanced();
+    return;
+  }
   goScreen(4);
 
   const config = {
@@ -666,7 +963,18 @@ function startDownload() {
     categories: categories.map(cat => ({
       display_name: cat.display_name,
       items: cat.items.map(i => ({ display_name: i.display_name, specification: i.specification || '' }))
-    }))
+    })),
+    // Advanced
+    provider_order:       selectedProviders,
+    require_license:      document.getElementById('requireLicense').checked,
+    dedup_threshold:      parseInt(document.getElementById('dedupSlider').value),
+    min_score:            0.0,
+    // Post-processing
+    postprocess_resize:   parseInt(document.getElementById('resizeMax').value) || 0,
+    postprocess_remove_bg: document.getElementById('removeBg').checked,
+    // Export
+    export_mode:          exportMode,
+    export_format:        exportFmt,
   };
 
   const ws = new WebSocket('ws://' + location.host + '/ws/harvest');
@@ -698,8 +1006,26 @@ function startDownload() {
       entry.textContent = '✗ ' + msg.slug + (msg.detail ? ' — ' + msg.detail : '');
       log.appendChild(entry);
       log.scrollTop = log.scrollHeight;
+    } else if (msg.type === 'progress' && msg.event === 'duplicate') {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry skip';
+      entry.textContent = '⊘ dup ' + msg.slug;
+      log.appendChild(entry);
+      log.scrollTop = log.scrollHeight;
+    } else if (msg.type === 'progress' && msg.event === 'skipped') {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry skip';
+      entry.textContent = '↩ resumed ' + msg.detail;
+      log.appendChild(entry);
+      log.scrollTop = log.scrollHeight;
     } else if (msg.type === 'report') {
       showReport(msg);
+    } else if (msg.type === 'warning') {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry warn';
+      entry.textContent = '⚠ ' + msg.message;
+      log.appendChild(entry);
+      log.scrollTop = log.scrollHeight;
     } else if (msg.type === 'error') {
       count.textContent = 'Error: ' + msg.message;
       count.style.color = 'var(--red)';
@@ -716,10 +1042,16 @@ function showReport(report) {
     <div class="stat"><div class="stat-num">${pct}%</div><div class="stat-label">Success rate</div></div>`;
   document.getElementById('saveDirNote').innerHTML =
     `Saved to: <code style="color:var(--accent)">${escH(report.save_dir)}</code>`;
+
+  const exportNote = document.getElementById('exportDirNote');
+  if (report.export_dir) {
+    exportNote.classList.remove('hidden');
+    exportNote.innerHTML = `Export: <code style="color:var(--green)">${escH(report.export_dir)}</code>`;
+  }
+
   const body = document.getElementById('reportBody');
   body.innerHTML = '';
   report.categories.forEach(cat => {
-    const ok      = !cat.error && cat.saved === cat.requested;
     const partial = !cat.error && cat.saved < cat.requested;
     const tag = cat.error ? '<span class="tag fail">failed</span>'
               : partial   ? '<span class="tag partial">partial</span>'
@@ -728,7 +1060,127 @@ function showReport(report) {
     tr.innerHTML = `<td>${escH(cat.slug)}</td><td>${cat.saved}/${cat.requested}</td><td>${tag}</td>`;
     body.appendChild(tr);
   });
+
+  // Provider + license breakdown
+  const bdEl = document.getElementById('providerBreakdown');
+  let bdHtml = '';
+  const hitRate = report.provider_hit_rate || {};
+  const licBreak = report.license_breakdown || {};
+  if (Object.keys(hitRate).length) {
+    bdHtml += `<div class="breakdown-section">
+      <div class="breakdown-title">Provider breakdown</div>
+      <div class="breakdown-chips">
+        ${Object.entries(hitRate).sort((a,b)=>b[1]-a[1]).map(([p,n])=>
+          `<div class="chip"><span>${p}</span><span class="chip-count">${n}</span></div>`
+        ).join('')}
+      </div>
+    </div>`;
+  }
+  if (Object.keys(licBreak).length) {
+    bdHtml += `<div class="breakdown-section" style="margin-top:14px">
+      <div class="breakdown-title">License breakdown</div>
+      <div class="breakdown-chips">
+        ${Object.entries(licBreak).sort((a,b)=>b[1]-a[1]).map(([l,n])=>
+          `<div class="chip"><span>${l || 'unknown'}</span><span class="chip-count">${n}</span></div>`
+        ).join('')}
+      </div>
+    </div>`;
+  }
+  bdEl.innerHTML = bdHtml;
+
   goScreen(5);
+}
+
+// ─── Session save ─────────────────────────────────────────────────────────────
+async function saveSession() {
+  try {
+    const res = await fetch('/api/session/save', { method: 'POST' });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    const btn = document.querySelector('#screen5 .btn-ghost.btn-sm');
+    if (btn) { btn.textContent = '✓ Saved'; btn.disabled = true; }
+  } catch(e) {
+    alert('Could not save session: ' + e.message);
+  }
+}
+
+// ─── Session load ─────────────────────────────────────────────────────────────
+async function showSessions() {
+  document.getElementById('sessionsOverlay').classList.remove('hidden');
+  for (let i = 1; i <= 5; i++) document.getElementById('screen'+i).classList.add('hidden');
+  const listEl = document.getElementById('sessionsList');
+  listEl.innerHTML = '<div style="color:var(--text-dim);font-size:13px">Loading…</div>';
+  try {
+    const res = await fetch('/api/sessions');
+    const data = await res.json();
+    if (!data.sessions.length) {
+      listEl.innerHTML = '<div style="color:var(--text-dim);font-size:13px">No saved sessions yet.</div>';
+      return;
+    }
+    const panel = document.createElement('div');
+    panel.className = 'session-panel';
+    data.sessions.forEach(s => {
+      const div = document.createElement('div');
+      div.className = 'session-item';
+      const d = s.saved_at ? new Date(s.saved_at).toLocaleString() : '';
+      div.innerHTML = `
+        <div>
+          <div class="session-name">${escH(s.project_name || s.id)}</div>
+          <div class="session-meta">${d} · ${s.image_count} imgs/item</div>
+        </div>
+        <button class="session-load" onclick="loadSession('${escH(s.id)}')">Load →</button>`;
+      panel.appendChild(div);
+    });
+    listEl.innerHTML = '';
+    listEl.appendChild(panel);
+  } catch(e) {
+    listEl.innerHTML = `<div style="color:var(--red);font-size:13px">Error loading sessions.</div>`;
+  }
+}
+
+function hideSessions() {
+  document.getElementById('sessionsOverlay').classList.add('hidden');
+  goScreen(currentScreen);
+}
+
+async function loadSession(id) {
+  try {
+    const res = await fetch('/api/sessions/' + encodeURIComponent(id));
+    if (!res.ok) throw new Error('Not found');
+    const data = await res.json();
+
+    // Populate fields
+    document.getElementById('projectName').value = data.project_name || '';
+    document.getElementById('imageCount').value = data.image_count || 3;
+    if (data.save_dir) {
+      document.getElementById('saveDir').value = data.save_dir;
+      document.getElementById('saveDir')._userEdited = true;
+      document.getElementById('dirPreview').textContent = data.save_dir;
+    }
+
+    // Restore categories
+    categories = [];
+    catCounter = 0;
+    for (const cat of (data.categories || [])) {
+      const id2 = ++catCounter;
+      categories.push({
+        id: id2,
+        display_name: cat.display_name || '',
+        slug: cat.slug || slug(cat.display_name || ''),
+        items: (cat.items || []).map(item => ({
+          id: Date.now() + Math.random(),
+          display_name: item.display_name || '',
+          slug: slug(item.display_name || ''),
+          specification: item.specification || '',
+        }))
+      });
+    }
+    renderCategoryList();
+    document.getElementById('aiSuggestStatus').textContent = `✓ Loaded "${data.project_name}"`;
+    goScreen(2);
+  } catch(e) {
+    alert('Could not load session: ' + e.message);
+  }
 }
 </script>
 </body>
