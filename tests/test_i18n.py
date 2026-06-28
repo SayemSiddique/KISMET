@@ -1,8 +1,5 @@
 """Tests for KISMET i18n / locale support (Phase 17)."""
 
-import os
-from unittest.mock import patch
-
 import pytest
 from typer.testing import CliRunner
 
